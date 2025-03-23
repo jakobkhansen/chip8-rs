@@ -1,8 +1,27 @@
-use chip8_rs::context::chip8_context::{Chip8Context, HEIGHT, SCALE, WIDTH};
-use sdl2::{event::Event, keyboard::Keycode};
+use std::{env, fs::File};
+
+use chip8_rs::emulator::{
+    chip8_context::{HEIGHT, SCALE, WIDTH},
+    emulator::{Chip8Emulator, EmulatorMode},
+};
+use sdl2::{event::Event, keyboard::Keycode, sys::KeyCode};
 
 fn main() -> Result<(), String> {
-    let mut chip8 = Chip8Context::new();
+    let args: Vec<String> = env::args().collect();
+    let romfile = args.get(1).expect("No ROM arg given");
+    let file = File::open(romfile).expect("ROM file not found");
+
+    println!("Running: {}", romfile);
+
+    let mut chip8 = Chip8Emulator::new(EmulatorMode::Step);
+    chip8
+        .read_rom_into_memory(file)
+        .expect("Could not read ROM into memory");
+
+    // println!("{:?}", chip8);
+    // for (i, mem) in chip8.context.memory.iter().enumerate() {
+    //     println!("{} {}", i, mem);
+    // }
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -16,14 +35,14 @@ fn main() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    chip8.frame_buffer.set_pixel(1, 1, true);
-    chip8.frame_buffer.set_pixel(1, 3, true);
-    chip8.frame_buffer.set_pixel(1, 4, true);
-    chip8.frame_buffer.set_pixel(2, 4, true);
-    chip8.frame_buffer.set_pixel(3, 4, true);
-    chip8.frame_buffer.set_pixel(4, 4, true);
-    chip8.frame_buffer.set_pixel(4, 3, true);
-    chip8.frame_buffer.set_pixel(4, 1, true);
+    // chip8.frame_buffer.set_pixel(1, 1, true);
+    // chip8.frame_buffer.set_pixel(1, 3, true);
+    // chip8.frame_buffer.set_pixel(1, 4, true);
+    // chip8.frame_buffer.set_pixel(2, 4, true);
+    // chip8.frame_buffer.set_pixel(3, 4, true);
+    // chip8.frame_buffer.set_pixel(4, 4, true);
+    // chip8.frame_buffer.set_pixel(4, 3, true);
+    // chip8.frame_buffer.set_pixel(4, 1, true);
 
     let mut canvas = window
         .into_canvas()
@@ -41,11 +60,23 @@ fn main() -> Result<(), String> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    if let EmulatorMode::Step = chip8.mode {
+                        chip8.execute_instruction();
+                    }
+                }
                 _ => {}
             }
         }
 
-        chip8.frame_buffer.render(&mut canvas);
+        if let EmulatorMode::Run = chip8.mode {
+            chip8.execute_instruction();
+        }
+
+        chip8.context.frame_buffer.render(&mut canvas);
     }
 
     Ok(())
