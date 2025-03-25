@@ -79,6 +79,9 @@ impl FrameBuffer {
             *elem = value;
         }
     }
+    pub fn clear(&mut self) {
+        self.buffer = [false; WIDTH * HEIGHT];
+    }
     pub fn render(&self, canvas: &mut Canvas<Window>) {
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
