@@ -1,7 +1,5 @@
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window};
 
-use super::font::FONTS;
-
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
 pub const SCALE: u32 = 10;
@@ -16,7 +14,7 @@ pub struct Chip8Context {
 
     // Stack and stack-pointer
     pub stack: [u16; 16],
-    pub sp: u8,
+    pub sp: usize,
 
     // Special registers
     pub i: u16,
@@ -49,6 +47,16 @@ impl Chip8Context {
 
     pub fn increment_pc(&mut self) {
         self.pc += 2;
+    }
+
+    pub fn stack_push(&mut self, value: u16) {
+        self.stack[self.sp] = value;
+        self.sp += 1;
+    }
+
+    pub fn stack_pop(&mut self) -> u16 {
+        self.sp -= 1;
+        self.stack[self.sp]
     }
 }
 

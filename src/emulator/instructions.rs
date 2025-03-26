@@ -34,6 +34,37 @@ impl Chip8Emulator {
                 let masked = full & 0x0FFF;
                 self.context.pc = masked as usize;
             }
+            (2, _, _, _) => {
+                let masked = full & 0x0FFF;
+                self.context.stack_push(self.context.pc as u16);
+                self.context.pc = masked as usize;
+            }
+            (3, _, _, _) => {
+                let nn = (full & 0x00FF) as u8;
+                let vx = self.context.v[nibble_2 as usize];
+                if nn == vx {
+                    self.context.increment_pc();
+                }
+            }
+            (4, _, _, _) => {
+                let nn = (full & 0x00FF) as u8;
+                let vx = self.context.v[nibble_2 as usize];
+                if nn != vx {
+                    self.context.increment_pc();
+                }
+            }
+            (5, _, _, _) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+
+                if vx == vy {
+                    self.context.increment_pc();
+                }
+            }
+            (0, 0, 0xE, 0xE) => {
+                let ret = self.context.stack_pop();
+                self.context.pc = ret as usize;
+            }
             (6, _, _, _) => {
                 self.context.v[nibble_2 as usize] = end;
                 println!("Set V{} to {}", nibble_2, end);
@@ -42,6 +73,18 @@ impl Chip8Emulator {
             (7, _, _, _) => {
                 println!("Add {} to V{}", end, nibble_2);
                 self.context.v[nibble_2 as usize] += end;
+            }
+            (8, _, _, _) => {
+                let vy = self.context.v[nibble_3 as usize];
+                self.context.v[nibble_2 as usize] = vy;
+            }
+            (9, _, _, _) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+
+                if vx != vy {
+                    self.context.increment_pc();
+                }
             }
             (0xD, _, _, _) => {
                 let x = (self.context.v[nibble_2 as usize] % WIDTH as u8) as usize;

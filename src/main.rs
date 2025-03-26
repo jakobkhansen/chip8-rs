@@ -18,11 +18,6 @@ fn main() -> Result<(), String> {
         .read_rom_into_memory(file)
         .expect("Could not read ROM into memory");
 
-    // println!("{:?}", chip8);
-    // for (i, mem) in chip8.context.memory.iter().enumerate() {
-    //     println!("{} {}", i, mem);
-    // }
-
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let window = video_subsystem
@@ -34,15 +29,6 @@ fn main() -> Result<(), String> {
         .position_centered()
         .build()
         .map_err(|e| e.to_string())?;
-
-    // chip8.frame_buffer.set_pixel(1, 1, true);
-    // chip8.frame_buffer.set_pixel(1, 3, true);
-    // chip8.frame_buffer.set_pixel(1, 4, true);
-    // chip8.frame_buffer.set_pixel(2, 4, true);
-    // chip8.frame_buffer.set_pixel(3, 4, true);
-    // chip8.frame_buffer.set_pixel(4, 4, true);
-    // chip8.frame_buffer.set_pixel(4, 3, true);
-    // chip8.frame_buffer.set_pixel(4, 1, true);
 
     let mut canvas = window
         .into_canvas()
