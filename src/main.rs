@@ -1,6 +1,7 @@
 use std::{
     env,
     fs::File,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -24,7 +25,7 @@ fn main() -> Result<(), String> {
         .expect("Could not read ROM into memory");
 
     // Loop
-    let interval = Duration::from_millis(LOOP_SPEED);
+    let interval = Duration::from_secs_f64(LOOP_SPEED);
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -53,6 +54,7 @@ fn main() -> Result<(), String> {
         let elapsed = last_loop.elapsed();
 
         if elapsed < interval {
+            thread::sleep(interval - elapsed);
             continue;
         }
 
@@ -90,9 +92,12 @@ fn main() -> Result<(), String> {
 
         if let EmulatorMode::Run = chip8.mode {
             chip8.execute_instruction();
+            chip8.context.update_timers();
         }
 
-        chip8.context.frame_buffer.render(&mut canvas);
+        if chip8.context.frame_buffer.is_dirty() {
+            chip8.context.frame_buffer.render(&mut canvas);
+        }
     }
 
     Ok(())

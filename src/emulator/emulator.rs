@@ -4,11 +4,13 @@ use sdl2::keyboard::Keycode;
 
 use super::{chip8_context::Chip8Context, font::FONTS};
 
+pub const FONT_OFFSET: u8 = 0x050;
+pub const ROM_OFFSET: usize = 0x200;
+
 #[derive(Debug)]
 pub struct Chip8Emulator {
     pub context: Chip8Context,
     pub mode: EmulatorMode,
-    input_queue: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -22,7 +24,6 @@ impl Chip8Emulator {
         let mut out = Chip8Emulator {
             context: Chip8Context::new(),
             mode,
-            input_queue: vec![],
         };
 
         out.load_font();
@@ -31,13 +32,13 @@ impl Chip8Emulator {
     }
 
     pub fn read_rom_into_memory(&mut self, mut rom: File) -> Result<usize, std::io::Error> {
-        rom.read(&mut self.context.memory[0x200..])
+        rom.read(&mut self.context.memory[ROM_OFFSET..])
     }
 
     pub fn load_font(&mut self) {
-        let mut index = 0x50;
+        let mut index = FONT_OFFSET as usize;
         let flat_fonts = FONTS.as_flattened();
-        self.context.memory[0x50..0x50 + flat_fonts.len()].copy_from_slice(flat_fonts);
+        self.context.memory[index..index + flat_fonts.len()].copy_from_slice(flat_fonts);
         for sprite in FONTS {
             for pixel in sprite {
                 self.context.memory[index] = pixel;

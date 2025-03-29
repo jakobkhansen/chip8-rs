@@ -2,8 +2,8 @@ use std::time::{Duration, Instant};
 
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window};
 
-pub const LOOP_SPEED: u64 = 1 / 700;
-pub const TIMER_SPEED: u64 = 1 / 60;
+pub const LOOP_SPEED: f64 = 1.0 / 700.0;
+pub const TIMER_SPEED: f64 = 1.0 / 60.0;
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
 pub const SCALE: u32 = 10;
@@ -74,7 +74,7 @@ impl Chip8Context {
     }
 
     pub fn update_timers(&mut self) {
-        let interval = Duration::from_millis(LOOP_SPEED);
+        let interval = Duration::from_secs_f64(TIMER_SPEED);
         let elapsed = self.last_timer_update.elapsed();
 
         if elapsed >= interval {
@@ -107,12 +107,14 @@ impl Default for Chip8Context {
 #[derive(Debug)]
 pub struct FrameBuffer {
     buffer: [bool; WIDTH * HEIGHT],
+    dirty: bool,
 }
 
 impl FrameBuffer {
     pub fn new() -> Self {
         FrameBuffer {
             buffer: [false; WIDTH * HEIGHT],
+            dirty: false,
         }
     }
     pub fn get_pixel(&self, x: usize, y: usize) -> Option<bool> {
@@ -124,11 +126,16 @@ impl FrameBuffer {
         if let Some(elem) = self.buffer.get_mut(index) {
             *elem = value;
         }
+        self.dirty = true;
+    }
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
     }
     pub fn clear(&mut self) {
         self.buffer = [false; WIDTH * HEIGHT];
+        self.dirty = true;
     }
-    pub fn render(&self, canvas: &mut Canvas<Window>) {
+    pub fn render(&mut self, canvas: &mut Canvas<Window>) {
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
         canvas.set_draw_color(Color::WHITE);
@@ -147,6 +154,7 @@ impl FrameBuffer {
             }
         }
         canvas.present();
+        self.dirty = false;
     }
 }
 
