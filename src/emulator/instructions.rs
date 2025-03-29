@@ -1,3 +1,5 @@
+use std::u16::MAX;
+
 use crate::emulator::chip8_context::{HEIGHT, WIDTH};
 
 use super::emulator::{Chip8Emulator, FONT_OFFSET};
@@ -77,7 +79,8 @@ impl Chip8Emulator {
             }
             // Add vx to NN
             (7, _, _, _) => {
-                self.context.v[nibble_2 as usize] += end;
+                self.context.v[nibble_2 as usize] =
+                    self.context.v[nibble_2 as usize].wrapping_add(end);
             }
             // Set vx to vy
             (8, _, _, 0) => {
@@ -125,6 +128,14 @@ impl Chip8Emulator {
                 let val = self.context.v[x] * 5;
 
                 self.context.i = (FONT_OFFSET + val) as u16;
+            }
+            (0xF, _, 1, 0xE) => {
+                let val = self.context.v[nibble_2 as usize];
+                let (res, overflowed) = self.context.i.overflowing_add(val as u16);
+                self.context.i = res;
+                if overflowed {
+                    self.context.v[0x0F] = 1;
+                }
             }
 
             // Draw to screen
