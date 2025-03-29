@@ -1,5 +1,3 @@
-use std::u16::MAX;
-
 use crate::emulator::chip8_context::{HEIGHT, WIDTH};
 
 use super::emulator::{Chip8Emulator, FONT_OFFSET};
@@ -86,6 +84,30 @@ impl Chip8Emulator {
             (8, _, _, 0) => {
                 let vy = self.context.v[nibble_3 as usize];
                 self.context.v[nibble_2 as usize] = vy;
+            }
+            (8, _, _, 1) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                self.context.v[nibble_2 as usize] = vx | vy;
+            }
+            (8, _, _, 2) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                self.context.v[nibble_2 as usize] = vx & vy;
+            }
+            (8, _, _, 3) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                self.context.v[nibble_2 as usize] = vx ^ vy;
+            }
+            (8, _, _, 4) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                let (res, overflow) = vx.overflowing_add(vy);
+                self.context.v[nibble_3 as usize] = res;
+                if overflow {
+                    self.context.v[0x0F] = 1;
+                }
             }
             // Skip next if vx != vy
             (9, _, _, _) => {
