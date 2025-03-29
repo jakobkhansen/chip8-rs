@@ -1,22 +1,30 @@
-use std::{env, fs::File};
+use std::{
+    env,
+    fs::File,
+    time::{Duration, Instant},
+};
 
 use chip8_rs::emulator::{
-    chip8_context::{HEIGHT, SCALE, WIDTH},
+    chip8_context::{HEIGHT, LOOP_SPEED, SCALE, WIDTH},
     emulator::{Chip8Emulator, EmulatorMode},
 };
 use sdl2::{event::Event, keyboard::Keycode, sys::KeyCode};
 
 fn main() -> Result<(), String> {
+    // Init ROM
     let args: Vec<String> = env::args().collect();
     let romfile = args.get(1).expect("No ROM arg given");
     let file = File::open(romfile).expect("ROM file not found");
 
     println!("Running: {}", romfile);
 
-    let mut chip8 = Chip8Emulator::new(EmulatorMode::Step);
+    let mut chip8 = Chip8Emulator::new(EmulatorMode::Run);
     chip8
         .read_rom_into_memory(file)
         .expect("Could not read ROM into memory");
+
+    // Loop
+    let interval = Duration::from_millis(LOOP_SPEED);
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -38,7 +46,18 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump()?;
 
+    let mut last_loop = Instant::now();
+
     'running: loop {
+        let now = Instant::now();
+        let elapsed = last_loop.elapsed();
+
+        if elapsed < interval {
+            continue;
+        }
+
+        last_loop = now;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -52,6 +71,17 @@ fn main() -> Result<(), String> {
                 } => {
                     if let EmulatorMode::Step = chip8.mode {
                         chip8.execute_instruction();
+                        chip8.context.update_timers();
+                    }
+                }
+                Event::KeyDown {
+                    keycode: Some(_), ..
+                } => {
+                    if let Event::KeyDown {
+                        keycode: Some(x), ..
+                    } = event
+                    {
+                        chip8.push_input(x);
                     }
                 }
                 _ => {}

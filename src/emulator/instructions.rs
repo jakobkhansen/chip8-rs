@@ -21,16 +21,13 @@ impl Chip8Emulator {
 
         match (nibble_1, nibble_2, nibble_3, nibble_4) {
             (0, 0, 0xE, 0) => {
-                println!("Clear screen");
                 self.context.frame_buffer.clear();
             }
             (0xA, _, _, _) => {
                 let masked = full & 0x0FFF;
-                println!("Set I to {}", masked);
                 self.context.i = masked;
             }
             (1, _, _, _) => {
-                println!("Jump");
                 let masked = full & 0x0FFF;
                 self.context.pc = masked as usize;
             }
@@ -67,11 +64,8 @@ impl Chip8Emulator {
             }
             (6, _, _, _) => {
                 self.context.v[nibble_2 as usize] = end;
-                println!("Set V{} to {}", nibble_2, end);
-                println!("{:?}", self.context.v);
             }
             (7, _, _, _) => {
-                println!("Add {} to V{}", end, nibble_2);
                 self.context.v[nibble_2 as usize] += end;
             }
             (8, _, _, _) => {
@@ -85,6 +79,29 @@ impl Chip8Emulator {
                 if vx != vy {
                     self.context.increment_pc();
                 }
+            }
+            (0xF, _, 0, 0xA) => {
+                let input = self.context.read_input();
+                let x = nibble_2 as usize;
+
+                if let Some(ch) = input {
+                    println!("input {}, x {}", ch, x);
+                    self.context.v[x] = ch;
+                } else {
+                    self.context.decrement_pc();
+                }
+            }
+            (0xF, _, 0, 7) => {
+                let x = nibble_2 as usize;
+                self.context.v[x] = self.context.delay;
+            }
+            (0xF, _, 1, 5) => {
+                let x = nibble_2 as usize;
+                self.context.delay = self.context.v[x];
+            }
+            (0xF, _, 1, 8) => {
+                let x = nibble_2 as usize;
+                self.context.sound = self.context.v[x];
             }
             (0xD, _, _, _) => {
                 let x = (self.context.v[nibble_2 as usize] % WIDTH as u8) as usize;
@@ -127,6 +144,5 @@ impl Chip8Emulator {
             }
             _ => println!("Unknown operation"),
         }
-        println!();
     }
 }

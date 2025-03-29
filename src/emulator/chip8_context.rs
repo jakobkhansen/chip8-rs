@@ -1,5 +1,9 @@
+use std::time::{Duration, Instant};
+
 use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window};
 
+pub const LOOP_SPEED: u64 = 1 / 700;
+pub const TIMER_SPEED: u64 = 1 / 60;
 pub const WIDTH: usize = 64;
 pub const HEIGHT: usize = 32;
 pub const SCALE: u32 = 10;
@@ -21,9 +25,13 @@ pub struct Chip8Context {
     pub pc: usize,
     pub delay: u8,
     pub sound: u8,
+    last_timer_update: Instant,
 
     // Framebuffer
     pub frame_buffer: FrameBuffer,
+
+    // Input
+    pub input_queue: Vec<u8>,
 }
 
 impl Chip8Context {
@@ -37,7 +45,9 @@ impl Chip8Context {
             pc: 0x200,
             delay: 0,
             sound: 0,
+            last_timer_update: Instant::now(),
             frame_buffer: FrameBuffer::new(),
+            input_queue: vec![],
         }
     }
 
@@ -49,6 +59,10 @@ impl Chip8Context {
         self.pc += 2;
     }
 
+    pub fn decrement_pc(&mut self) {
+        self.pc -= 2;
+    }
+
     pub fn stack_push(&mut self, value: u16) {
         self.stack[self.sp] = value;
         self.sp += 1;
@@ -57,6 +71,30 @@ impl Chip8Context {
     pub fn stack_pop(&mut self) -> u16 {
         self.sp -= 1;
         self.stack[self.sp]
+    }
+
+    pub fn update_timers(&mut self) {
+        let interval = Duration::from_millis(LOOP_SPEED);
+        let elapsed = self.last_timer_update.elapsed();
+
+        if elapsed >= interval {
+            if self.delay > 0 {
+                self.delay -= 1;
+            }
+
+            if self.sound > 0 {
+                self.sound -= 1;
+            }
+
+            self.last_timer_update = Instant::now();
+        }
+    }
+    pub fn read_input(&mut self) -> Option<u8> {
+        self.input_queue.pop()
+    }
+
+    pub fn push_input(&mut self, input: u8) {
+        self.input_queue.push(input);
     }
 }
 
