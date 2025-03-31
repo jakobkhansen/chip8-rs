@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::emulator::chip8_context::{HEIGHT, WIDTH};
 
 use super::emulator::{Chip8Emulator, FONT_OFFSET};
@@ -12,7 +14,19 @@ impl Chip8Emulator {
         let nibble_3 = (full >> 4) & 0xF; // Third nibble (high nibble of the low byte)
         let nibble_4 = full & 0xF; // Fourth nibble (low nibble of the low byte)
 
-        // println!("full   {:#016b} {:x}", full, full);
+        // println!("{}", self.context.pc);
+        // println!(
+        //     "{:#06x} {}: full   {:#016b} {:x}",
+        //     self.context.pc, self.context.pc, full, full
+        // );
+        // let hex_string: String = self
+        //     .context
+        //     .v
+        //     .iter()
+        //     .map(|b| format!("{:02X}", b))
+        //     .collect::<Vec<_>>() // Collect into Vec<String>
+        //     .join(" ");
+        // println!("i={} {}\n", self.context.i, hex_string);
         // println!("nibble {:#016b} {:x}", nibble_1, nibble_1);
         // println!("nibble {:#016b} {:x}", nibble_2, nibble_2);
         // println!("nibble {:#016b} {:x}", nibble_3, nibble_3);
@@ -30,11 +44,6 @@ impl Chip8Emulator {
                 self.context.pc = ret as usize;
             }
             (0, _, _, _) => {}
-            // Set I to NNN
-            (0xA, _, _, _) => {
-                let masked = full & 0x0FFF;
-                self.context.i = masked;
-            }
             // Jump to NNN
             (1, _, _, _) => {
                 let masked = full & 0x0FFF;
@@ -104,10 +113,49 @@ impl Chip8Emulator {
                 let vx = self.context.v[nibble_2 as usize];
                 let vy = self.context.v[nibble_3 as usize];
                 let (res, overflow) = vx.overflowing_add(vy);
-                self.context.v[nibble_3 as usize] = res;
+                self.context.v[nibble_2 as usize] = res;
                 if overflow {
                     self.context.v[0x0F] = 1;
                 }
+            }
+            (8, _, _, 5) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                let (res, overflow) = vx.overflowing_sub(vy);
+                self.context.v[nibble_2 as usize] = res;
+
+                self.context.v[0x0F] = 1;
+
+                if overflow {
+                    self.context.v[0x0F] = 0;
+                }
+            }
+            (8, _, _, 6) => {
+                let x = nibble_2 as usize;
+                let y = nibble_3 as usize;
+                self.context.v[x] = self.context.v[y];
+
+                self.context.v[0x0F] = self.context.v[x] & 0b10000000;
+                self.context.v[x] <<= 1;
+            }
+            (8, _, _, 7) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let vy = self.context.v[nibble_3 as usize];
+                let (res, overflow) = vy.overflowing_sub(vx);
+                self.context.v[nibble_2 as usize] = res;
+
+                self.context.v[0x0F] = 1;
+
+                if overflow {
+                    self.context.v[0x0F] = 0;
+                }
+            }
+            (8, _, _, 0xE) => {
+                let x = nibble_2 as usize;
+                let y = nibble_3 as usize;
+                self.context.v[x] = self.context.v[y];
+                self.context.v[0x0F] = self.context.v[x] & 0b00000001;
+                self.context.v[x] >>= 1;
             }
             // Skip next if vx != vy
             (9, _, _, _) => {
@@ -117,6 +165,24 @@ impl Chip8Emulator {
                 if vx != vy {
                     self.context.increment_pc();
                 }
+            }
+            // Set I to NNN
+            (0xA, _, _, _) => {
+                let masked = full & 0x0FFF;
+                self.context.i = masked;
+            }
+            // Jump with offset
+            (0xB, _, _, _) => {
+                let nnn = full & 0x0FFF;
+                let v0 = self.context.v[0] as u16;
+                self.context.pc = (nnn + v0) as usize;
+            }
+            // Random
+            (0xC, _, _, _) => {
+                let nn = (full & 0x00FF) as u8;
+                let mut rng = rand::thread_rng();
+                let generated: u8 = rng.r#gen();
+                self.context.v[nibble_2 as usize] = generated & nn;
             }
             // Wait for input and place in vx
             (0xF, _, 0, 0xA) => {
@@ -130,27 +196,22 @@ impl Chip8Emulator {
                     self.context.decrement_pc();
                 }
             }
-            // Set vx to delay
-            (0xF, _, 0, 7) => {
-                let x = nibble_2 as usize;
-                self.context.v[x] = self.context.delay;
-            }
             // Set delay timer
             (0xF, _, 1, 5) => {
                 let x = nibble_2 as usize;
                 self.context.delay = self.context.v[x];
+            }
+            // Set vx to delay
+            (0xF, _, 0, 7) => {
+                let x = nibble_2 as usize;
+                self.context.v[x] = self.context.delay;
             }
             // Set audio timer
             (0xF, _, 1, 8) => {
                 let x = nibble_2 as usize;
                 self.context.sound = self.context.v[x];
             }
-            (0xF, _, 2, 9) => {
-                let x = nibble_2 as usize;
-                let val = self.context.v[x] * 5;
-
-                self.context.i = (FONT_OFFSET + val) as u16;
-            }
+            // Add X to I
             (0xF, _, 1, 0xE) => {
                 let val = self.context.v[nibble_2 as usize];
                 let (res, overflowed) = self.context.i.overflowing_add(val as u16);
@@ -159,7 +220,29 @@ impl Chip8Emulator {
                     self.context.v[0x0F] = 1;
                 }
             }
+            // Set I to font character address
+            (0xF, _, 2, 9) => {
+                let x = nibble_2 as usize;
+                let val = self.context.v[x] * 5;
 
+                self.context.i = (FONT_OFFSET + val) as u16;
+            }
+            // Store v[0] to v[x] in memory (from I)
+            (0xF, _, 5, 5) => {
+                let x = nibble_2;
+
+                for i in 0..(x + 1) {
+                    self.context.memory[(self.context.i + i) as usize] = self.context.v[i as usize];
+                }
+            }
+            // Store memory from I in v[0] to v[x]
+            (0xF, _, 6, 5) => {
+                let x = nibble_2;
+
+                for i in 0..(x + 1) {
+                    self.context.v[i as usize] = self.context.memory[(self.context.i + i) as usize];
+                }
+            }
             // Draw to screen
             (0xD, _, _, _) => {
                 let x = (self.context.v[nibble_2 as usize] % WIDTH as u8) as usize;
