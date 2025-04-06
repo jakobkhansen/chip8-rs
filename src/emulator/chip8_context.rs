@@ -32,6 +32,7 @@ pub struct Chip8Context {
 
     // Input
     pub input_queue: Vec<u8>,
+    pub held_keys: [bool; 16],
 }
 
 impl Chip8Context {
@@ -48,6 +49,7 @@ impl Chip8Context {
             last_timer_update: Instant::now(),
             frame_buffer: FrameBuffer::new(),
             input_queue: vec![],
+            held_keys: [false; 16],
         }
     }
 

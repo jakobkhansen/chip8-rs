@@ -184,13 +184,24 @@ impl Chip8Emulator {
                 let generated: u8 = rng.r#gen();
                 self.context.v[nibble_2 as usize] = generated & nn;
             }
+            (0xE, _, 9, 0xE) => {
+                let x = self.context.v[nibble_2 as usize];
+                if self.context.held_keys[x as usize] {
+                    self.context.pc += 2;
+                }
+            }
+            (0xE, _, 0xA, 1) => {
+                let x = self.context.v[nibble_2 as usize];
+                if !self.context.held_keys[x as usize] {
+                    self.context.pc += 2;
+                }
+            }
             // Wait for input and place in vx
             (0xF, _, 0, 0xA) => {
                 let input = self.context.read_input();
                 let x = nibble_2 as usize;
 
                 if let Some(ch) = input {
-                    println!("input {}, x {}", ch, x);
                     self.context.v[x] = ch;
                 } else {
                     self.context.decrement_pc();

@@ -1,5 +1,6 @@
 use std::{
     env,
+    f32::consts::PI,
     fs::File,
     thread,
     time::{Duration, Instant},
@@ -9,7 +10,12 @@ use chip8_rs::emulator::{
     chip8_context::{HEIGHT, LOOP_SPEED, SCALE, WIDTH},
     emulator::{Chip8Emulator, EmulatorMode},
 };
-use sdl2::{event::Event, keyboard::Keycode, sys::KeyCode};
+use sdl2::{
+    audio::{AudioQueue, AudioSpecDesired},
+    event::Event,
+    keyboard::Keycode,
+    sys::KeyCode,
+};
 
 fn main() -> Result<(), String> {
     // Init ROM
@@ -24,10 +30,23 @@ fn main() -> Result<(), String> {
         .read_rom_into_memory(file)
         .expect("Could not read ROM into memory");
 
+    // Init sdl2
+    let sdl_context = sdl2::init()?;
+    let audio_subsystem = sdl_context.audio()?;
+
+    let audio_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(2),
+        samples: None,
+    };
+
+    let audio_queue: AudioQueue<i16> = audio_subsystem.open_queue(None, &audio_spec)?;
+
+    audio_queue.resume();
+
     // Loop
     let interval = Duration::from_secs_f64(LOOP_SPEED);
 
-    let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let window = video_subsystem
         .window(
@@ -74,6 +93,7 @@ fn main() -> Result<(), String> {
                     if let EmulatorMode::Step = chip8.mode {
                         chip8.execute_instruction();
                         chip8.context.update_timers();
+                        chip8.audio(&audio_queue);
                     }
                 }
                 Event::KeyDown {
@@ -83,7 +103,18 @@ fn main() -> Result<(), String> {
                         keycode: Some(x), ..
                     } = event
                     {
-                        chip8.push_input(x);
+                        chip8.push_input_to_queue(x);
+                        chip8.set_keydown(x);
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(_), ..
+                } => {
+                    if let Event::KeyUp {
+                        keycode: Some(x), ..
+                    } = event
+                    {
+                        chip8.set_keyup(x);
                     }
                 }
                 _ => {}
@@ -93,6 +124,7 @@ fn main() -> Result<(), String> {
         if let EmulatorMode::Run = chip8.mode {
             chip8.execute_instruction();
             chip8.context.update_timers();
+            chip8.audio(&audio_queue);
         }
 
         if chip8.context.frame_buffer.is_dirty() {
