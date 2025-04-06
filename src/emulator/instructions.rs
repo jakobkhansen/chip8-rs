@@ -234,9 +234,9 @@ impl Chip8Emulator {
             // Set I to font character address
             (0xF, _, 2, 9) => {
                 let x = nibble_2 as usize;
-                let val = self.context.v[x] * 5;
+                let val = (self.context.v[x] as u16) * 5;
 
-                self.context.i = (FONT_OFFSET + val) as u16;
+                self.context.i = (FONT_OFFSET as u16) + val;
             }
             // Store v[0] to v[x] in memory (from I)
             (0xF, _, 5, 5) => {
