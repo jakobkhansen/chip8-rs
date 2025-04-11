@@ -13,24 +13,6 @@ impl Chip8Emulator {
         let nibble_2 = (full >> 8) & 0xF; // Second nibble (low nibble of the high byte)
         let nibble_3 = (full >> 4) & 0xF; // Third nibble (high nibble of the low byte)
         let nibble_4 = full & 0xF; // Fourth nibble (low nibble of the low byte)
-
-        // println!("{}", self.context.pc);
-        // println!(
-        //     "{:#06x} {}: full   {:#016b} {:x}",
-        //     self.context.pc, self.context.pc, full, full
-        // );
-        // let hex_string: String = self
-        //     .context
-        //     .v
-        //     .iter()
-        //     .map(|b| format!("{:02X}", b))
-        //     .collect::<Vec<_>>() // Collect into Vec<String>
-        //     .join(" ");
-        // println!("i={} {}\n", self.context.i, hex_string);
-        // println!("nibble {:#016b} {:x}", nibble_1, nibble_1);
-        // println!("nibble {:#016b} {:x}", nibble_2, nibble_2);
-        // println!("nibble {:#016b} {:x}", nibble_3, nibble_3);
-        // println!("nibble {:#016b} {:x}", nibble_4, nibble_4);
         self.context.increment_pc();
 
         match (nibble_1, nibble_2, nibble_3, nibble_4) {
@@ -114,6 +96,7 @@ impl Chip8Emulator {
                 let vy = self.context.v[nibble_3 as usize];
                 let (res, overflow) = vx.overflowing_add(vy);
                 self.context.v[nibble_2 as usize] = res;
+                println!("{} {} {}", vx, vy, self.context.v[nibble_2 as usize]);
                 if overflow {
                     self.context.v[0x0F] = 1;
                 }
@@ -229,6 +212,17 @@ impl Chip8Emulator {
                 if overflowed {
                     self.context.v[0x0F] = 1;
                 }
+            }
+            (0xF, _, 3, 3) => {
+                let vx = self.context.v[nibble_2 as usize];
+                let ones = vx % 10;
+                let tens = ((vx % 100) - ones) / 10;
+                let hundreds = (vx - (tens + ones)) / 100;
+                let i = self.context.i as usize;
+
+                self.context.memory[i] = hundreds;
+                self.context.memory[i + 1] = tens;
+                self.context.memory[i + 2] = ones;
             }
             // Set I to font character address
             (0xF, _, 2, 9) => {
