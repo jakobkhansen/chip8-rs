@@ -198,10 +198,9 @@ impl Chip8Emulator {
             }
             // Wait for input and place in vx
             (0xF, _, 0, 0xA) => {
-                let input = self.context.read_input();
                 let x = nibble_2 as usize;
 
-                if let Some(ch) = input {
+                if let Some(ch) = self.context.input {
                     self.context.v[x] = ch;
                 } else {
                     self.context.decrement_pc();
@@ -295,5 +294,8 @@ impl Chip8Emulator {
             }
             _ => println!("Unknown operation: {:x}", full),
         }
+
+        // Don't store input longer than necessary
+        self.context.input = None;
     }
 }

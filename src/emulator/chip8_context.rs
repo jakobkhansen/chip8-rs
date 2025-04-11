@@ -31,8 +31,8 @@ pub struct Chip8Context {
     pub frame_buffer: FrameBuffer,
 
     // Input
-    pub input_queue: Vec<u8>,
     pub held_keys: [bool; 16],
+    pub input: Option<u8>,
 }
 
 impl Chip8Context {
@@ -48,8 +48,12 @@ impl Chip8Context {
             sound: 0,
             last_timer_update: Instant::now(),
             frame_buffer: FrameBuffer::new(),
-            input_queue: vec![],
+
+            // Used to check for held keys
             held_keys: [false; 16],
+
+            // Used when program is blocked on input
+            input: None,
         }
     }
 
@@ -90,13 +94,6 @@ impl Chip8Context {
 
             self.last_timer_update = Instant::now();
         }
-    }
-    pub fn read_input(&mut self) -> Option<u8> {
-        self.input_queue.pop()
-    }
-
-    pub fn push_input(&mut self, input: u8) {
-        self.input_queue.push(input);
     }
 }
 

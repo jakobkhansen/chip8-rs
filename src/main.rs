@@ -1,6 +1,5 @@
 use std::{
     env,
-    f32::consts::PI,
     fs::File,
     thread,
     time::{Duration, Instant},
@@ -14,7 +13,6 @@ use sdl2::{
     audio::{AudioQueue, AudioSpecDesired},
     event::Event,
     keyboard::Keycode,
-    sys::KeyCode,
 };
 
 fn main() -> Result<(), String> {
@@ -103,7 +101,6 @@ fn main() -> Result<(), String> {
                         keycode: Some(x), ..
                     } = event
                     {
-                        chip8.push_input_to_queue(x);
                         chip8.set_keydown(x);
                     }
                 }

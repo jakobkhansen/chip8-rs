@@ -47,14 +47,10 @@ impl Chip8Emulator {
         }
     }
 
-    pub fn push_input_to_queue(&mut self, keycode: Keycode) {
-        let char = Chip8Emulator::get_char_hex(keycode);
-        self.context.push_input(char);
-    }
-
     pub fn set_keydown(&mut self, keycode: Keycode) {
         let char = Chip8Emulator::get_char_hex(keycode);
         self.context.held_keys[char as usize] = true;
+        self.context.input = Some(char);
     }
 
     pub fn set_keyup(&mut self, keycode: Keycode) {
