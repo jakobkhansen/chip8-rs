@@ -96,7 +96,6 @@ impl Chip8Emulator {
                 let vy = self.context.v[nibble_3 as usize];
                 let (res, overflow) = vx.overflowing_add(vy);
                 self.context.v[nibble_2 as usize] = res;
-                println!("{} {} {}", vx, vy, self.context.v[nibble_2 as usize]);
                 if overflow {
                     self.context.v[0x0F] = 1;
                 }

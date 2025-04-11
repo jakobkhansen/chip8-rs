@@ -21,8 +21,6 @@ fn main() -> Result<(), String> {
     let romfile = args.get(1).expect("No ROM arg given");
     let file = File::open(romfile).expect("ROM file not found");
 
-    println!("Running: {}", romfile);
-
     let mut chip8 = Chip8Emulator::new(EmulatorMode::Run);
     chip8
         .read_rom_into_memory(file)
